@@ -1,0 +1,75 @@
+# VELAGALA KESAVA NAGA SAI ADEEP REDDY
+# Cybersecurity Threat Detection Using Machine Learning
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import LabelEncoder
+import joblib
+
+# Step 1: Load Dataset (Sample Log Data)
+df = pd.read_csv('cyber_logs.csv')  # Replace with actual dataset
+
+# Step 2: Data Preprocessing
+df.dropna(inplace=True)  # Remove missing values
+
+# Encode categorical features (IP, Protocol, Action)
+categorical_cols = ['src_ip', 'dst_ip', 'protocol', 'action']
+label_encoders = {}
+for col in categorical_cols:
+    le = LabelEncoder()
+    df[col] = le.fit_transform(df[col])
+    label_encoders[col] = le
+
+# Step 3: Feature Engineering
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df['hour'] = df['timestamp'].dt.hour
+
+# Select Features and Target
+features = ['src_ip', 'dst_ip', 'protocol', 'action', 'hour', 'bytes_transferred']
+target = 'label'  # 0 = Normal, 1 = Threat
+
+X = df[features]
+y = df[target]
+
+# Step 4: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 5: Model Training
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Step 6: Evaluation
+y_pred = model.predict(X_test)
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+# Step 7: Save Model
+joblib.dump(model, 'threat_detection_model.pkl')
+
+# Step 8: Real-time Scoring (Example)
+def detect_threat(log_entry):
+    # Simulate single log row scoring
+    entry_df = pd.DataFrame([log_entry])
+    for col in categorical_cols:
+        entry_df[col] = label_encoders[col].transform(entry_df[col])
+    entry_df['timestamp'] = pd.to_datetime(entry_df['timestamp'])
+    entry_df['hour'] = entry_df['timestamp'].dt.hour
+    entry_df = entry_df[features]
+    prediction = model.predict(entry_df)
+    return "THREAT" if prediction[0] == 1 else "NORMAL"
+
+# Sample test
+sample_log = {
+    'src_ip': ['192.168.1.100'],
+    'dst_ip': ['10.0.0.5'],
+    'protocol': ['TCP'],
+    'action': ['ACCESS'],
+    'timestamp': ['2025-07-21 02:00:00'],
+    'bytes_transferred': [50000]
+}
+
+result = detect_threat(sample_log)
+print("Result:", result)
