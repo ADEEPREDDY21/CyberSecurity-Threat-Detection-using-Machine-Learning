@@ -10,7 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 import joblib
 
 # Step 1: Load Dataset (Sample Log Data)
-df = pd.read_csv('cyber_logs.csv')  # Replace with actual dataset
+df = pd.read_csv("/content/CYBER_LOGS.csv")  
+
 
 # Step 2: Data Preprocessing
 df.dropna(inplace=True)  # Remove missing values
@@ -51,24 +52,31 @@ joblib.dump(model, 'threat_detection_model.pkl')
 
 # Step 8: Real-time Scoring (Example)
 def detect_threat(log_entry):
-    # Simulate single log row scoring
+    # Convert dict to DataFrame
     entry_df = pd.DataFrame([log_entry])
+    
+    # Encode categorical columns using saved encoders
     for col in categorical_cols:
-        entry_df[col] = label_encoders[col].transform(entry_df[col])
+        entry_df[col] = label_encoders[col].transform([log_entry[col]]) 
+    # Parse timestamp and extract hour
     entry_df['timestamp'] = pd.to_datetime(entry_df['timestamp'])
     entry_df['hour'] = entry_df['timestamp'].dt.hour
+    
+    # Select required features
     entry_df = entry_df[features]
+    
+    # Predict threat
     prediction = model.predict(entry_df)
     return "THREAT" if prediction[0] == 1 else "NORMAL"
 
-# Sample test
+# Sample test — remove list brackets from values!
 sample_log = {
-    'src_ip': ['192.168.1.100'],
-    'dst_ip': ['10.0.0.5'],
-    'protocol': ['TCP'],
-    'action': ['ACCESS'],
-    'timestamp': ['2025-07-21 02:00:00'],
-    'bytes_transferred': [50000]
+    'src_ip': '192.168.1.100',
+    'dst_ip': '10.0.0.5',
+    'protocol': 'TCP',
+    'action': 'ACCESS',
+    'timestamp': '2025-07-21 02:00:00',
+    'bytes_transferred': 50000
 }
 
 result = detect_threat(sample_log)
